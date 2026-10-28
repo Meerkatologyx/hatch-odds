@@ -26,6 +26,7 @@
   --gold: #ffcf4a;
   --secret: #b98cff;
   --cyan: #4fe0ff;
+  --diamond: #9fefff;
   --rainbow: linear-gradient(90deg, #ff4f7b, #ff9f43, #ffe14a, #5cf59a, #4fe0ff, #8b7bff, #ff6bd5, #ff4f7b);
   --display: "Unbounded", "Trebuchet MS", sans-serif;
   --body: "Nunito", "Segoe UI", system-ui, sans-serif;
@@ -98,7 +99,7 @@ h1 span { background: var(--rainbow); background-size: 200% 100%; -webkit-backgr
 .pill input::-webkit-outer-spin-button, .pill input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .pill input::placeholder { color: var(--muted); opacity: .45; }
 .pill .suf { font: 700 1rem var(--display); color: var(--muted); }
-.p-luck { --c: var(--luck); } .p-mythic { --c: var(--mythic); } .p-gold { --c: var(--gold); } .p-secret { --c: var(--secret); } .p-cyan { --c: var(--cyan); }
+.p-luck { --c: var(--luck); } .p-mythic { --c: var(--mythic); } .p-gold { --c: var(--gold); } .p-secret { --c: var(--secret); } .p-cyan { --c: var(--cyan); } .p-diamond { --c: var(--diamond); }
 .p-rainbow .name { background: var(--rainbow); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .p-rainbow { --c: #8b7bff; }
 .pill.wide { grid-column: 1 / -1; }
@@ -137,7 +138,9 @@ h1 span { background: var(--rainbow); background-size: 200% 100%; -webkit-backgr
 .vcard .k { font-family: var(--display); font-weight: 700; font-size: 1rem; color: var(--c); position: relative; }
 .vcard .v { font-family: var(--display); font-weight: 700; font-size: clamp(1.05rem, 3vw, 1.35rem); font-variant-numeric: tabular-nums; text-align: right; position: relative; overflow-wrap: anywhere; }
 .vcard .s { grid-column: 1 / -1; color: var(--muted); font-size: .82rem; font-weight: 700; position: relative; }
-.v-mythic { --c: var(--mythic); } .v-gold { --c: var(--gold); }
+.v-gold { --c: var(--gold); }
+.v-diamond { --c: var(--diamond); }
+.v-diamond .k { background: linear-gradient(100deg, #fff 0%, var(--diamond) 35%, #fff 50%, var(--diamond) 65%, #6fd3ff 100%); background-size: 250% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; animation: flow 4s linear infinite; }
 .v-rainbow { --c: #8b7bff; }
 .v-rainbow .k { background: var(--rainbow); background-size: 200% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; animation: flow 5s linear infinite; }
 .v-rainbow::after { content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 1px; background: var(--rainbow); background-size: 200% 100%; animation: flow 5s linear infinite; -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; pointer-events: none; opacity: .7; }
@@ -153,7 +156,7 @@ summary::before { content: "+"; font-family: var(--display); display: inline-gri
 details[open] summary::before { transform: rotate(45deg); }
 summary:focus-visible { outline: 3px solid var(--cyan); outline-offset: 4px; border-radius: 6px; }
 .adv { display: grid; gap: 14px; margin-top: 14px; }
-.adv .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.adv .stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 @media (max-width: 420px) { .adv .stats { grid-template-columns: minmax(0, 1fr); } }
 .adv .pill input { font-size: 1.05rem; }
 .seg { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -218,10 +221,11 @@ summary:focus-visible { outline: 3px solid var(--cyan); outline-offset: 4px; bor
           <div>
             <p class="q">Base variant chances</p>
             <div class="stats">
-              <label class="pill p-gold"><span class="name">Gold</span><span class="row"><input id="baseGold" type="text" placeholder="1/?" spellcheck="false"></span></label>
-              <label class="pill p-rainbow"><span class="name">Rainbow</span><span class="row"><input id="baseRainbow" type="text" placeholder="1/?" spellcheck="false"></span></label>
+              <label class="pill p-gold"><span class="name">Gold</span><span class="row"><input id="baseGold" type="text" value="1/20" placeholder="1/?" spellcheck="false"></span></label>
+              <label class="pill p-diamond"><span class="name">Diamond</span><span class="row"><input id="baseDiamond" type="text" value="1/200" placeholder="1/?" spellcheck="false"></span></label>
+              <label class="pill p-rainbow"><span class="name">Rainbow</span><span class="row"><input id="baseRainbow" type="text" value="1/200" placeholder="1/?" spellcheck="false"></span></label>
             </div>
-            <p class="fine" style="margin-top:8px">The chance of a hatch being Gold or Rainbow before any luck. Fill these in to see those odds.</p>
+            <p class="fine" style="margin-top:8px">The chance of a hatch being each variant before any luck. Worked out from how many of each exist for a 1/1M secret (2,224 Gold, 219 Diamond, 209 Rainbow out of 40,636). Change them if you find the exact numbers.</p>
           </div>
           <div>
             <p class="q">Your Secret Luck and the egg's bar</p>
@@ -251,6 +255,7 @@ summary:focus-visible { outline: 3px solid var(--cyan); outline-offset: 4px; bor
 
       <div class="variants">
         <div class="vcard v-gold"><span class="k">Gold</span><span class="v" id="oddsGold">—</span><span class="s" id="noteGold"></span></div>
+        <div class="vcard v-diamond"><span class="k">Diamond</span><span class="v" id="oddsDiamond">—</span><span class="s" id="noteDiamond"></span></div>
         <div class="vcard v-rainbow"><span class="k">Rainbow</span><span class="v" id="oddsRainbow">—</span><span class="s" id="noteRainbow"></span></div>
       </div>
 
@@ -261,9 +266,9 @@ summary:focus-visible { outline: 3px solid var(--cyan); outline-offset: 4px; bor
 
 <script>
 (function () {
-  const KEY = "tapsim-hatch-odds-v4";
+  const KEY = "tapsim-hatch-odds-v5";
   const $ = (id) => document.getElementById(id);
-  const fields = ["luck", "secret", "mythic", "gold", "rainbow", "eggSecret", "petOdds", "baseGold", "baseRainbow"];
+  const fields = ["luck", "secret", "mythic", "gold", "rainbow", "eggSecret", "petOdds", "baseGold", "baseDiamond", "baseRainbow"];
   const petType = () => ($("typeSecret").checked ? "secret" : $("typeMythic").checked ? "mythic" : "normal");
   const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -333,6 +338,7 @@ summary:focus-visible { outline: 3px solid var(--cyan); outline-offset: 4px; bor
     const p = Math.min(base * boost, 1);
     const variants = [
       ["Gold", "baseGold", "gold"],
+      ["Diamond", "baseDiamond", null], // no Diamond Luck stat in game
       ["Rainbow", "baseRainbow", "rainbow"]
     ];
 
@@ -348,7 +354,7 @@ summary:focus-visible { outline: 3px solid var(--cyan); outline-offset: 4px; bor
       const raw = $(baseId).value.trim();
       const vb = parseOdds(raw);
       $(baseId).classList.toggle("bad", raw !== "" && !(vb > 0));
-      const q = p * Math.min(vb * (1 + v(luckId) / 100), 1);
+      const q = p * Math.min(vb * (luckId ? 1 + v(luckId) / 100 : 1), 1);
       tween("odds" + name, q > 0 ? 1 / q : NaN, "1 in ");
       $("note" + name).textContent = q > 0
         ? "50% chance within " + hatches(q, 0.5) + " hatches"
