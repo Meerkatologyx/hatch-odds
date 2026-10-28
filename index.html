@@ -96,6 +96,7 @@ h1 span { background: var(--rainbow); background-size: 200% 100%; -webkit-backgr
   -moz-appearance: textfield;
 }
 .pill input::-webkit-outer-spin-button, .pill input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.pill input::placeholder { color: var(--muted); opacity: .45; }
 .pill .suf { font: 700 1rem var(--display); color: var(--muted); }
 .p-luck { --c: var(--luck); } .p-mythic { --c: var(--mythic); } .p-gold { --c: var(--gold); } .p-secret { --c: var(--secret); } .p-cyan { --c: var(--cyan); }
 .p-rainbow .name { background: var(--rainbow); -webkit-background-clip: text; background-clip: text; color: transparent; }
@@ -183,25 +184,25 @@ summary:focus-visible { outline: 3px solid var(--cyan); outline-offset: 4px; bor
       <div>
         <p class="sec-label">Your luck</p>
         <div class="stats">
-          <label class="pill p-luck"><span class="name">Luck</span><span class="row"><input id="luck" type="number" step="any" value="205"><span class="suf">%</span></span></label>
-          <label class="pill p-secret"><span class="name">Secret Luck</span><span class="row"><input id="secret" type="number" step="any" value="47"><span class="suf">%</span></span></label>
-          <label class="pill p-mythic"><span class="name">Mythic Luck</span><span class="row"><input id="mythic" type="number" step="any" value="45"><span class="suf">%</span></span></label>
-          <label class="pill p-gold"><span class="name">Gold Luck</span><span class="row"><input id="gold" type="number" step="any" value="5"><span class="suf">%</span></span></label>
-          <label class="pill p-rainbow"><span class="name">Rainbow Luck</span><span class="row"><input id="rainbow" type="number" step="any" value="0"><span class="suf">%</span></span></label>
-          <label class="pill p-secret"><span class="name">Egg Secret Luck</span><span class="row"><input id="eggSecret" type="number" step="any" value="280"><span class="suf">%</span></span></label>
+          <label class="pill p-luck"><span class="name">Luck</span><span class="row"><input id="luck" type="number" step="any" placeholder="0"><span class="suf">%</span></span></label>
+          <label class="pill p-secret"><span class="name">Secret Luck</span><span class="row"><input id="secret" type="number" step="any" placeholder="0"><span class="suf">%</span></span></label>
+          <label class="pill p-mythic"><span class="name">Mythic Luck</span><span class="row"><input id="mythic" type="number" step="any" placeholder="0"><span class="suf">%</span></span></label>
+          <label class="pill p-gold"><span class="name">Gold Luck</span><span class="row"><input id="gold" type="number" step="any" placeholder="0"><span class="suf">%</span></span></label>
+          <label class="pill p-rainbow"><span class="name">Rainbow Luck</span><span class="row"><input id="rainbow" type="number" step="any" placeholder="0"><span class="suf">%</span></span></label>
+          <label class="pill p-secret"><span class="name">Egg Secret Luck</span><span class="row"><input id="eggSecret" type="number" step="any" placeholder="0"><span class="suf">%</span></span></label>
         </div>
       </div>
 
       <div>
         <p class="sec-label">The pet</p>
         <div class="stats">
-          <label class="pill p-cyan wide"><span class="name">Base chance (no boosts)</span><span class="row"><input id="petOdds" type="text" value="1/5m" spellcheck="false" autocomplete="off" style="font-size:1.6rem"></span></label>
+          <label class="pill p-cyan wide"><span class="name">Base chance (no boosts)</span><span class="row"><input id="petOdds" type="text" placeholder="1/?" spellcheck="false" autocomplete="off" style="font-size:1.6rem"></span></label>
         </div>
         <p class="fine" style="margin-top:8px">Type it any way: 1/5m, 5000000, 0.00002%, 1/2.5k</p>
       </div>
 
       <label class="switch">
-        <input type="checkbox" id="isSecret" checked>
+        <input type="checkbox" id="isSecret">
         <span class="track"></span>
         <span>It's a Secret pet<small>Turns on Secret Luck and the egg's bar</small></span>
       </label>
@@ -212,11 +213,11 @@ summary:focus-visible { outline: 3px solid var(--cyan); outline-offset: 4px; bor
           <div>
             <p class="q">Base variant chances</p>
             <div class="stats">
-              <label class="pill p-mythic"><span class="name">Mythic</span><span class="row"><input id="baseMythic" type="text" value="1/100" spellcheck="false"></span></label>
-              <label class="pill p-gold"><span class="name">Gold</span><span class="row"><input id="baseGold" type="text" value="1/50" spellcheck="false"></span></label>
-              <label class="pill p-rainbow"><span class="name">Rainbow</span><span class="row"><input id="baseRainbow" type="text" value="1/200" spellcheck="false"></span></label>
+              <label class="pill p-mythic"><span class="name">Mythic</span><span class="row"><input id="baseMythic" type="text" placeholder="1/?" spellcheck="false"></span></label>
+              <label class="pill p-gold"><span class="name">Gold</span><span class="row"><input id="baseGold" type="text" placeholder="1/?" spellcheck="false"></span></label>
+              <label class="pill p-rainbow"><span class="name">Rainbow</span><span class="row"><input id="baseRainbow" type="text" placeholder="1/?" spellcheck="false"></span></label>
             </div>
-            <p class="fine" style="margin-top:8px">These are guesses. Put in the game's real numbers if you know them.</p>
+            <p class="fine" style="margin-top:8px">The chance of a hatch being Mythic, Gold or Rainbow before any luck. Fill these in to see variant odds.</p>
           </div>
           <div>
             <p class="q">Your Secret Luck and the egg's bar</p>
@@ -257,7 +258,7 @@ summary:focus-visible { outline: 3px solid var(--cyan); outline-offset: 4px; bor
 
 <script>
 (function () {
-  const KEY = "tapsim-hatch-odds-v2";
+  const KEY = "tapsim-hatch-odds-v3";
   const $ = (id) => document.getElementById(id);
   const fields = ["luck", "secret", "mythic", "gold", "rainbow", "eggSecret", "petOdds", "baseMythic", "baseGold", "baseRainbow"];
   const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -315,7 +316,7 @@ summary:focus-visible { outline: 3px solid var(--cyan); outline-offset: 4px; bor
     const boost = isSecret ? secM * ($("lsNo").checked ? 1 : luckM) : luckM;
 
     const base = parseOdds($("petOdds").value);
-    $("petOdds").classList.toggle("bad", !(base > 0));
+    $("petOdds").classList.toggle("bad", $("petOdds").value.trim() !== "" && !(base > 0));
     $("hero").classList.toggle("is-secret", isSecret);
 
     const p = Math.min(base * boost, 1);
@@ -330,18 +331,21 @@ summary:focus-visible { outline: 3px solid var(--cyan); outline-offset: 4px; bor
       $("noteAny").textContent = p >= 1 ? "Every hatch" : "50% chance within " + hatches(p, 0.5) + " hatches · 90% within " + hatches(p, 0.9);
     } else {
       tween("oddsAny", NaN, "");
-      $("noteAny").textContent = "Type the pet's base chance on the left";
+      $("noteAny").textContent = "Type the pet's base chance to see your odds";
     }
 
     variants.forEach(([name, baseId, luckId]) => {
-      const vb = parseOdds($(baseId).value);
-      $(baseId).classList.toggle("bad", !(vb > 0));
+      const raw = $(baseId).value.trim();
+      const vb = parseOdds(raw);
+      $(baseId).classList.toggle("bad", raw !== "" && !(vb > 0));
       const q = p * Math.min(vb * (1 + v(luckId) / 100), 1);
       tween("odds" + name, q > 0 ? 1 / q : NaN, "1 in ");
-      $("note" + name).textContent = q > 0 ? "50% chance within " + hatches(q, 0.5) + " hatches" : "";
+      $("note" + name).textContent = q > 0
+        ? "50% chance within " + hatches(q, 0.5) + " hatches"
+        : !(base > 0) ? "" : raw === "" ? "Add its base chance under Advanced" : "Check the base chance under Advanced";
     });
 
-    $("boost").textContent = "Your luck makes this pet " + (Math.round(boost * 100) / 100) + "× more likely than its base chance.";
+    $("boost").textContent = base > 0 ? "Your luck makes this pet " + (Math.round(boost * 100) / 100) + "× more likely than its base chance." : "";
     save();
   }
 
@@ -357,7 +361,7 @@ summary:focus-visible { outline: 3px solid var(--cyan); outline-offset: 4px; bor
       const d = JSON.parse(localStorage.getItem(KEY) || "null");
       if (!d) return;
       fields.forEach((id) => { if (d[id] != null) $(id).value = d[id]; });
-      $("isSecret").checked = d.isSecret !== false;
+      $("isSecret").checked = d.isSecret === true;
       if (d.mul) $("stackMul").checked = true;
       if (d.lsNo) $("lsNo").checked = true;
       if (d.adv) $("adv").open = true;
