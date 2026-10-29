@@ -104,6 +104,27 @@ h1 span { background: var(--rainbow); background-size: 200% 100%; -webkit-backgr
 .p-rainbow { --c: #8b7bff; }
 .pill.wide { grid-column: 1 / -1; }
 
+/* screenshot scan */
+.sec-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+.sec-head .sec-label { margin: 0; }
+.scan-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  font: 700 .78rem var(--display); color: var(--fg);
+  background: linear-gradient(135deg, rgba(79, 224, 255, .22), rgba(185, 140, 255, .22));
+  border: 1px solid var(--edge); border-radius: 99px; padding: 8px 14px; cursor: pointer;
+  transition: transform .3s var(--ease), box-shadow .3s var(--ease), background .3s var(--ease);
+}
+.scan-btn:hover { transform: translateY(-2px); box-shadow: 0 0 26px -6px var(--cyan); }
+.scan-btn:focus-visible { outline: 3px solid var(--cyan); outline-offset: 3px; }
+.scan-btn[disabled] { opacity: .6; cursor: progress; transform: none; }
+.scan-btn svg { width: 16px; height: 16px; flex: none; }
+.scan-status { margin: 10px 0 0; font-size: .82rem; font-weight: 700; color: var(--muted); min-height: 1.3em; }
+.scan-status.ok { color: var(--luck); }
+.scan-status.err { color: var(--mythic); }
+.pill.filled { animation: filled 1.4s var(--ease); }
+@keyframes filled { 0% { border-color: var(--c); box-shadow: 0 0 0 0 var(--c), 0 0 34px -4px var(--c); } 100% { box-shadow: 0 0 0 14px transparent; } }
+.pane.drag { outline: 2px dashed var(--cyan); outline-offset: -10px; }
+
 /* pet type picker */
 .types { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; padding: 5px; border-radius: 18px; background: rgba(255, 255, 255, .04); border: 1px solid var(--edge); }
 .types label { --c: var(--fg); cursor: pointer; }
@@ -184,9 +205,16 @@ summary:focus-visible { outline: 3px solid var(--cyan); outline-offset: 4px; bor
   </header>
 
   <div class="grid">
-    <section class="pane" aria-label="Your numbers">
+    <section class="pane" id="inputsPane" aria-label="Your numbers">
       <div>
-        <p class="sec-label">Your luck</p>
+        <div class="sec-head">
+          <p class="sec-label">Your luck</p>
+          <button class="scan-btn" id="scanBtn" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
+            Scan screenshot
+          </button>
+          <input type="file" id="scanFile" accept="image/*" hidden>
+        </div>
         <div class="stats">
           <label class="pill p-luck"><span class="name">Luck</span><span class="row"><input id="luck" type="number" step="any" placeholder="0"><span class="suf">%</span></span></label>
           <label class="pill p-mythic"><span class="name">Mythic Luck</span><span class="row"><input id="mythic" type="number" step="any" placeholder="0"><span class="suf">%</span></span></label>
@@ -195,6 +223,7 @@ summary:focus-visible { outline: 3px solid var(--cyan); outline-offset: 4px; bor
           <label class="pill p-secret"><span class="name">Secret Luck</span><span class="row"><input id="secret" type="number" step="any" placeholder="0"><span class="suf">%</span></span></label>
           <label class="pill p-secret"><span class="name">Egg Secret Luck</span><span class="row"><input id="eggSecret" type="number" step="any" placeholder="0"><span class="suf">%</span></span></label>
         </div>
+        <p class="scan-status" id="scanStatus">You can also paste a screenshot with Ctrl+V.</p>
       </div>
 
       <div>
@@ -385,8 +414,144 @@ summary:focus-visible { outline: 3px solid var(--cyan); outline-offset: 4px; bor
     } catch (e) {}
   }
 
+  // ---- screenshot scan: read the Hatching panel with OCR and fill the luck boxes ----
+  const STAT_ORDER = ["luck", "mythic", "gold", "rainbow", "secret"];
+  const STAT_NAMES = { luck: "Luck", mythic: "Mythic Luck", gold: "Gold Luck", rainbow: "Rainbow Luck", secret: "Secret Luck" };
+  let tessLoad = null, workerP = null;
+
+  function loadTesseract() {
+    if (window.Tesseract) return Promise.resolve();
+    if (!tessLoad) {
+      tessLoad = new Promise((res, rej) => {
+        const s = document.createElement("script");
+        s.src = "https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js";
+        s.onload = res;
+        s.onerror = () => { tessLoad = null; rej(new Error("load")); };
+        document.head.appendChild(s);
+      });
+    }
+    return tessLoad;
+  }
+  function getWorker() {
+    if (!workerP) {
+      workerP = loadTesseract()
+        .then(() => Tesseract.createWorker("eng", 1, {
+          logger: (m) => { if (m.status === "recognizing text") status("Reading… " + Math.round(m.progress * 100) + "%"); }
+        }))
+        .then(async (w) => { await w.setParameters({ tessedit_pageseg_mode: "6" }); return w; })
+        .catch((e) => { workerP = null; throw e; });
+    }
+    return workerP;
+  }
+
+  // Game text is bright fill with a black outline on a dark panel: keep only bright pixels, as black on white.
+  async function prepImage(file) {
+    const url = URL.createObjectURL(file);
+    try {
+      const img = new Image();
+      await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = url; });
+      const scale = Math.max(1, Math.min(3, 900 / img.naturalWidth));
+      const c = document.createElement("canvas");
+      c.width = Math.round(img.naturalWidth * scale);
+      c.height = Math.round(img.naturalHeight * scale);
+      const ctx = c.getContext("2d", { willReadFrequently: true });
+      ctx.imageSmoothingQuality = "high";
+      ctx.drawImage(img, 0, 0, c.width, c.height);
+      const d = ctx.getImageData(0, 0, c.width, c.height), px = d.data;
+      for (let i = 0; i < px.length; i += 4) {
+        const v = Math.max(px[i], px[i + 1], px[i + 2]) > 150 ? 0 : 255;
+        px[i] = px[i + 1] = px[i + 2] = v;
+        px[i + 3] = 255;
+      }
+      ctx.putImageData(d, 0, 0);
+      return c;
+    } finally {
+      URL.revokeObjectURL(url);
+    }
+  }
+
+  function readNumber(tail) {
+    const s = tail.replace(/[oO]/g, "0").replace(/[Il|!]/g, "1").replace(/[sS]/g, "5");
+    let m = s.match(/(\d+(?:[.,]\d+)?)\s*%/);
+    if (m) return parseFloat(m[1].replace(",", "."));
+    m = s.match(/(\d+(?:[.,]\d+)?)/);
+    if (!m) return NaN;
+    let n = m[1];
+    if (n.length >= 3 && /96$/.test(n)) n = n.slice(0, -2); // "%" misread as "96"
+    return parseFloat(n.replace(",", "."));
+  }
+  function parseStats(text) {
+    const found = {}, inOrder = [];
+    text.split("\n").forEach((raw) => {
+      const l = raw.toLowerCase();
+      const at = l.lastIndexOf("uck");
+      const tail = at >= 0 ? raw.slice(at + 3) : raw;
+      const n = readNumber(tail);
+      if (!isFinite(n)) return;
+      inOrder.push(n);
+      if (at < 0) return;
+      const key = /myth/.test(l) ? "mythic" : /gold|go1d/.test(l) ? "gold" : /rain|bow/.test(l) ? "rainbow" : /secr|cret/.test(l) ? "secret" : "luck";
+      if (!(key in found)) found[key] = n;
+    });
+    // Labels misread? The panel always lists the five stats in the same order.
+    if (Object.keys(found).length < 5 && inOrder.length === 5) {
+      STAT_ORDER.forEach((k, i) => { if (!(k in found)) found[k] = inOrder[i]; });
+    }
+    return found;
+  }
+
+  function status(msg, kind) {
+    const el = $("scanStatus");
+    el.textContent = msg;
+    el.className = "scan-status" + (kind ? " " + kind : "");
+  }
+
+  async function scan(file) {
+    if (!file || !/^image\//.test(file.type)) return;
+    $("scanBtn").disabled = true;
+    status("Loading the reader…");
+    try {
+      const [worker, canvas] = await Promise.all([getWorker(), prepImage(file)]);
+      const { data } = await worker.recognize(canvas);
+      const stats = parseStats(data.text);
+      const got = STAT_ORDER.filter((k) => k in stats);
+      got.forEach((k) => {
+        const input = $(k);
+        input.value = stats[k];
+        const pill = input.closest(".pill");
+        pill.classList.remove("filled"); void pill.offsetWidth; pill.classList.add("filled");
+      });
+      update();
+      const missing = STAT_ORDER.filter((k) => !(k in stats)).map((k) => STAT_NAMES[k]);
+      if (!got.length) status("Couldn't find your stats in that image. Try cropping to just the Hatching panel.", "err");
+      else if (missing.length) status("Filled " + got.length + " of 5. Type in " + missing.join(", ") + ".", "err");
+      else status("Filled all 5 stats. Double-check they match.", "ok");
+    } catch (e) {
+      status("Couldn't load the screenshot reader. Check your connection and try again.", "err");
+    } finally {
+      $("scanBtn").disabled = false;
+      $("scanFile").value = "";
+    }
+  }
+
+  $("scanBtn").addEventListener("click", () => $("scanFile").click());
+  $("scanFile").addEventListener("change", (e) => scan(e.target.files[0]));
+  document.addEventListener("paste", (e) => {
+    const item = Array.from((e.clipboardData && e.clipboardData.items) || []).find((i) => i.type.startsWith("image/"));
+    if (item) { e.preventDefault(); scan(item.getAsFile()); }
+  });
+  const pane = $("inputsPane");
+  ["dragenter", "dragover"].forEach((t) => document.addEventListener(t, (e) => {
+    if (e.dataTransfer && Array.from(e.dataTransfer.types).includes("Files")) { e.preventDefault(); pane.classList.add("drag"); }
+  }));
+  ["dragleave", "drop"].forEach((t) => document.addEventListener(t, (e) => {
+    if (t === "dragleave" && e.relatedTarget) return;
+    pane.classList.remove("drag");
+    if (t === "drop" && e.dataTransfer && e.dataTransfer.files.length) { e.preventDefault(); scan(e.dataTransfer.files[0]); }
+  }));
+
   load();
-  document.querySelectorAll("input").forEach((el) => el.addEventListener(el.type === "radio" || el.type === "checkbox" ? "change" : "input", update));
+  document.querySelectorAll("input:not([type=file])").forEach((el) => el.addEventListener(el.type === "radio" || el.type === "checkbox" ? "change" : "input", update));
   $("adv").addEventListener("toggle", save);
   update();
 })();
