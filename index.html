@@ -119,6 +119,8 @@ h1 span { background: var(--rainbow); background-size: 200% 100%; -webkit-backgr
 .scan-btn[disabled] { opacity: .6; cursor: progress; transform: none; }
 .scan-btn svg { width: 16px; height: 16px; flex: none; }
 .scan-status { margin: 10px 0 0; font-size: .82rem; font-weight: 700; color: var(--muted); min-height: 1.3em; }
+.link-btn { background: none; border: 0; padding: 0; font: inherit; color: var(--cyan); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.link-btn:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; border-radius: 3px; }
 .scan-status.ok { color: var(--luck); }
 .scan-status.err { color: var(--mythic); }
 .pill.filled { animation: filled 1.4s var(--ease); }
@@ -210,8 +212,8 @@ summary:focus-visible { outline: 3px solid var(--cyan); outline-offset: 4px; bor
         <div class="sec-head">
           <p class="sec-label">Your luck</p>
           <button class="scan-btn" id="scanBtn" type="button">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
-            Scan screenshot
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9 4V3h6v1M9 11h6M9 15h4"/></svg>
+            Paste screenshot
           </button>
           <input type="file" id="scanFile" accept="image/*" hidden>
         </div>
@@ -223,7 +225,7 @@ summary:focus-visible { outline: 3px solid var(--cyan); outline-offset: 4px; bor
           <label class="pill p-secret"><span class="name">Secret Luck</span><span class="row"><input id="secret" type="number" step="any" placeholder="0"><span class="suf">%</span></span></label>
           <label class="pill p-secret"><span class="name">Egg Secret Luck</span><span class="row"><input id="eggSecret" type="number" step="any" placeholder="0"><span class="suf">%</span></span></label>
         </div>
-        <p class="scan-status" id="scanStatus">You can also paste a screenshot with Ctrl+V.</p>
+        <p class="scan-status" id="scanLine"><span id="scanStatus">Copy a screenshot of your stats, then press Ctrl+V.</span> <button type="button" class="link-btn" id="uploadBtn">Upload instead</button></p>
       </div>
 
       <div>
@@ -501,9 +503,8 @@ summary:focus-visible { outline: 3px solid var(--cyan); outline-offset: 4px; bor
   }
 
   function status(msg, kind) {
-    const el = $("scanStatus");
-    el.textContent = msg;
-    el.className = "scan-status" + (kind ? " " + kind : "");
+    $("scanStatus").textContent = msg;
+    $("scanLine").className = "scan-status" + (kind ? " " + kind : "");
   }
 
   async function scan(file) {
@@ -534,7 +535,24 @@ summary:focus-visible { outline: 3px solid var(--cyan); outline-offset: 4px; bor
     }
   }
 
-  $("scanBtn").addEventListener("click", () => $("scanFile").click());
+  // Read the image straight off the clipboard; fall back to Ctrl+V or the file picker where that isn't allowed.
+  $("scanBtn").addEventListener("click", async () => {
+    if (!(navigator.clipboard && navigator.clipboard.read)) { $("scanFile").click(); return; }
+    try {
+      for (const item of await navigator.clipboard.read()) {
+        const type = item.types.find((t) => t.startsWith("image/"));
+        if (type) {
+          const blob = await item.getType(type);
+          scan(new File([blob], "clipboard", { type }));
+          return;
+        }
+      }
+      status("No image on your clipboard. Take a screenshot of your stats first.", "err");
+    } catch (e) {
+      status("Your browser blocked the button from reading the clipboard. Press Ctrl+V instead.", "err");
+    }
+  });
+  $("uploadBtn").addEventListener("click", () => $("scanFile").click());
   $("scanFile").addEventListener("change", (e) => scan(e.target.files[0]));
   document.addEventListener("paste", (e) => {
     const item = Array.from((e.clipboardData && e.clipboardData.items) || []).find((i) => i.type.startsWith("image/"));
